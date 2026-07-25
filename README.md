@@ -2,6 +2,9 @@
 
 This project predicts whether a movie review is Positive or Negative using Machine Learning.
 
+## live link
+https://movie-sentiment-analysis-mkzyjaxf75cpnsnlh9m6h8.streamlit.app/
+
 ## Technologies Used
 
 - Python
