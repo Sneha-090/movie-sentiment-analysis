@@ -1,0 +1,4 @@
+distilbert_model/
+distilbert_results/
+__pycache__/
+*.pyc
