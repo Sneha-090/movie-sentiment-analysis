@@ -29,8 +29,12 @@ def predict_sentiment(text):
 
     confidence = probabilities[0][prediction].item()
 
-    # Check your model's actual label mapping
-    label = model.config.id2label.get(prediction, str(prediction))
+    label_map = {
+        0: "NEGATIVE",
+        1: "POSITIVE"
+    }
+
+    label = label_map[prediction]
 
     return label, confidence
 

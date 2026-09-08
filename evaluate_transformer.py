@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
-import torch
 
 from datasets import Dataset
+
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
@@ -23,11 +23,10 @@ from sklearn.metrics import (
 # ==========================================
 
 DATA_PATH = "data/IMDB Dataset.csv"
-
 MODEL_NAME = "distilbert-base-uncased"
 
-# CPU ke liye pehle small experiment
-SAMPLE_SIZE = 2000
+SAMPLE_SIZE = 5000
+SEED = 42
 
 
 # ==========================================
@@ -42,48 +41,74 @@ print("Total reviews:", len(df))
 
 
 # ==========================================
-# 3. TAKE SMALL SAMPLE
+# 3. TAKE SAMPLE
 # ==========================================
 
 df = df.sample(
     n=SAMPLE_SIZE,
-    random_state=42
+    random_state=SEED
 ).reset_index(drop=True)
 
-print("Reviews used for DistilBERT:", len(df))
+print("Reviews used:", len(df))
 
 
-# Convert sentiment to numerical labels
+# ==========================================
+# 4. CONVERT LABELS
+# ==========================================
+
 df["label"] = df["sentiment"].map({
     "negative": 0,
     "positive": 1
 })
 
-
-# Keep only required columns
 df = df[["review", "label"]]
 
 
 # ==========================================
-# 4. TRAIN / TEST SPLIT
+# 5. CREATE DATASET
 # ==========================================
 
 dataset = Dataset.from_pandas(df)
 
-dataset = dataset.train_test_split(
-    test_size=0.2,
-    seed=42
+
+# ==========================================
+# 6. TRAIN / VALIDATION / TEST SPLIT
+# ==========================================
+
+# First split:
+# 80% training
+# 20% temporary
+
+split_1 = dataset.train_test_split(
+    test_size=0.20,
+    seed=SEED
 )
 
-train_dataset = dataset["train"]
-test_dataset = dataset["test"]
+train_dataset = split_1["train"]
+temp_dataset = split_1["test"]
 
-print("Training reviews:", len(train_dataset))
-print("Testing reviews:", len(test_dataset))
+
+# Split temporary 50/50:
+# 10% validation
+# 10% final test
+
+split_2 = temp_dataset.train_test_split(
+    test_size=0.50,
+    seed=SEED
+)
+
+validation_dataset = split_2["train"]
+test_dataset = split_2["test"]
+
+
+print("\nDataset split:")
+print("Training:", len(train_dataset))
+print("Validation:", len(validation_dataset))
+print("Final Test:", len(test_dataset))
 
 
 # ==========================================
-# 5. LOAD TOKENIZER
+# 7. LOAD TOKENIZER
 # ==========================================
 
 print("\nLoading DistilBERT tokenizer...")
@@ -93,7 +118,9 @@ tokenizer = AutoTokenizer.from_pretrained(
 )
 
 
-# tokenzation
+# ==========================================
+# 8. TOKENIZATION
+# ==========================================
 
 def tokenize_function(examples):
 
@@ -105,9 +132,14 @@ def tokenize_function(examples):
     )
 
 
-print("Tokenizing dataset...")
+print("\nTokenizing datasets...")
 
 train_dataset = train_dataset.map(
+    tokenize_function,
+    batched=True
+)
+
+validation_dataset = validation_dataset.map(
     tokenize_function,
     batched=True
 )
@@ -119,27 +151,56 @@ test_dataset = test_dataset.map(
 
 
 # Remove original text column
-train_dataset = train_dataset.remove_columns(["review"])
-test_dataset = test_dataset.remove_columns(["review"])
 
+train_dataset = train_dataset.remove_columns(
+    ["review"]
+)
 
-# load distilbert model
+validation_dataset = validation_dataset.remove_columns(
+    ["review"]
+)
 
-print("\nLoading DistilBERT model...")
-
-model = AutoModelForSequenceClassification.from_pretrained(
-    MODEL_NAME,
-    num_labels=2
+test_dataset = test_dataset.remove_columns(
+    ["review"]
 )
 
 
-# metrices
+# ==========================================
+# 9. LOAD DISTILBERT
+# ==========================================
+
+print("\nLoading DistilBERT model...")
+
+id2label = {
+    0: "NEGATIVE",
+    1: "POSITIVE"
+}
+
+label2id = {
+    "NEGATIVE": 0,
+    "POSITIVE": 1
+}
+
+model = AutoModelForSequenceClassification.from_pretrained(
+    MODEL_NAME,
+    num_labels=2,
+    id2label=id2label,
+    label2id=label2id
+)
+
+
+# ==========================================
+# 10. METRICS
+# ==========================================
 
 def compute_metrics(eval_pred):
 
     logits, labels = eval_pred
 
-    predictions = np.argmax(logits, axis=-1)
+    predictions = np.argmax(
+        logits,
+        axis=-1
+    )
 
     accuracy = accuracy_score(
         labels,
@@ -148,17 +209,20 @@ def compute_metrics(eval_pred):
 
     precision = precision_score(
         labels,
-        predictions
+        predictions,
+        zero_division=0
     )
 
     recall = recall_score(
         labels,
-        predictions
+        predictions,
+        zero_division=0
     )
 
     f1 = f1_score(
         labels,
-        predictions
+        predictions,
+        zero_division=0
     )
 
     return {
@@ -169,14 +233,19 @@ def compute_metrics(eval_pred):
     }
 
 
-# training setting
+# ==========================================
+# 11. TRAINING SETTINGS
+# ==========================================
 
 training_args = TrainingArguments(
 
     output_dir="./distilbert_results",
 
+    # Evaluate after every epoch
     eval_strategy="epoch",
 
+    # IMPORTANT:
+    # Do not save checkpoints during training
     save_strategy="no",
 
     learning_rate=2e-5,
@@ -185,7 +254,7 @@ training_args = TrainingArguments(
 
     per_device_eval_batch_size=8,
 
-    num_train_epochs=2,
+    num_train_epochs=3,
 
     weight_decay=0.01,
 
@@ -193,11 +262,15 @@ training_args = TrainingArguments(
 
     report_to="none",
 
-    use_cpu=True
+    use_cpu=True,
+
+    seed=SEED
 )
 
 
-# trainer
+# ==========================================
+# 12. TRAINER
+# ==========================================
 
 trainer = Trainer(
 
@@ -207,64 +280,120 @@ trainer = Trainer(
 
     train_dataset=train_dataset,
 
-    eval_dataset=test_dataset,
+    eval_dataset=validation_dataset,
 
     compute_metrics=compute_metrics
 )
 
 
-# train
+# ==========================================
+# 13. TRAIN
+# ==========================================
 
 print("\n" + "=" * 60)
-print("STARTING DISTILBERT TRAINING")
+print("STARTING FINAL DISTILBERT TRAINING")
 print("=" * 60)
 
 trainer.train()
 
 
-
-#  EVALUATE
+# ==========================================
+# 14. VALIDATION RESULT
+# ==========================================
 
 print("\n" + "=" * 60)
-print("EVALUATING DISTILBERT")
+print("FINAL VALIDATION EVALUATION")
 print("=" * 60)
 
-results = trainer.evaluate()
+validation_results = trainer.evaluate(
+    eval_dataset=validation_dataset
+)
 
+print("\nVALIDATION RESULTS")
 
-
-#  DISPLAY RESULTS
-
-
-print("\nDISTILBERT RESULTS")
 print("=" * 60)
 
 print(
-    f"Accuracy : {results['eval_accuracy']:.4f}"
+    f"Accuracy : "
+    f"{validation_results['eval_accuracy']:.4f}"
 )
 
 print(
-    f"Precision: {results['eval_precision']:.4f}"
+    f"Precision: "
+    f"{validation_results['eval_precision']:.4f}"
 )
 
 print(
-    f"Recall   : {results['eval_recall']:.4f}"
+    f"Recall   : "
+    f"{validation_results['eval_recall']:.4f}"
 )
 
 print(
-    f"F1 Score : {results['eval_f1']:.4f}"
+    f"F1 Score : "
+    f"{validation_results['eval_f1']:.4f}"
 )
 
 
-#  SAVE MODEL
+# ==========================================
+# 15. FINAL TEST
+# ==========================================
+
+print("\n" + "=" * 60)
+print("FINAL TEST EVALUATION")
+print("=" * 60)
+
+test_results = trainer.evaluate(
+    eval_dataset=test_dataset
+)
 
 
-print("\nSaving DistilBERT model...")
+# ==========================================
+# 16. DISPLAY FINAL TEST RESULTS
+# ==========================================
 
-trainer.save_model("./distilbert_model")
-tokenizer.save_pretrained("./distilbert_model")
+print("\nFINAL DISTILBERT TEST RESULTS")
 
-print("\nDistilBERT model saved!")
+print("=" * 60)
+
+print(
+    f"Accuracy : "
+    f"{test_results['eval_accuracy']:.4f}"
+)
+
+print(
+    f"Precision: "
+    f"{test_results['eval_precision']:.4f}"
+)
+
+print(
+    f"Recall   : "
+    f"{test_results['eval_recall']:.4f}"
+)
+
+print(
+    f"F1 Score : "
+    f"{test_results['eval_f1']:.4f}"
+)
+
+
+# ==========================================
+# 17. SAVE FINAL MODEL
+# ==========================================
+
+print("\n" + "=" * 60)
+print("SAVING FINAL DISTILBERT MODEL")
+print("=" * 60)
+
+trainer.save_model(
+    "./distilbert_model"
+)
+
+tokenizer.save_pretrained(
+    "./distilbert_model"
+)
+
+print("\nFinal DistilBERT model saved!")
+
 print("Location: distilbert_model")
 
 print("\nTraining and evaluation completed! 🎉")
