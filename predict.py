@@ -5,15 +5,22 @@ MODEL_PATH = "distilbert_model"
 
 print("Loading trained DistilBERT model...")
 
+# Select device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Load tokenizer and model
 tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
 model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH)
 
+model.to(device)
 model.eval()
 
-print("Model loaded successfully!\n")
+print("Model loaded successfully!")
+print(f"Using device: {device}\n")
 
 
 def predict_sentiment(text):
+
     inputs = tokenizer(
         text,
         return_tensors="pt",
@@ -21,10 +28,14 @@ def predict_sentiment(text):
         padding=True
     )
 
+    # Move inputs to same device as model
+    inputs = {key: value.to(device) for key, value in inputs.items()}
+
     with torch.no_grad():
         outputs = model(**inputs)
 
     probabilities = torch.softmax(outputs.logits, dim=-1)
+
     prediction = torch.argmax(probabilities, dim=-1).item()
 
     confidence = probabilities[0][prediction].item()
@@ -40,6 +51,7 @@ def predict_sentiment(text):
 
 
 while True:
+
     text = input("Enter a sentence (or type 'exit'): ")
 
     if text.lower() == "exit":
