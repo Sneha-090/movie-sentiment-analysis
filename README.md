@@ -2,7 +2,34 @@
 
 A movie sentiment analysis project that uses a fine-tuned **DistilBERT** transformer model to classify movie reviews as **Positive** or **Negative**.
 
-The model was fine-tuned on the **IMDB Movie Review Dataset** and integrated into a **Streamlit web application** for real-time sentiment prediction.
+The model was fine-tuned on the **IMDB Movie Review Dataset** and integrated into an interactive **Streamlit web application** for real-time sentiment prediction.
+
+---
+
+## 🚀 Live Demo
+
+🌐 **Try the application:**
+
+https://movie-sentiment-analysis-mkzyjaxf75cpnsnlh9m6h8.streamlit.app/
+
+Enter a movie review and get:
+
+- Predicted sentiment
+- Confidence score
+
+---
+
+## 🤗 Hugging Face Model
+
+The fine-tuned DistilBERT model is hosted on Hugging Face:
+
+👉 https://huggingface.co/Sneha-090/movie-sentiment-distilbert
+
+---
+
+## 💻 GitHub Repository
+
+👉 https://github.com/Sneha-090/movie-sentiment-analysis
 
 ---
 
@@ -39,14 +66,14 @@ The final test set was kept separate and was used only for evaluating the traine
 
 The final model is based on:
 
-**DistilBERT — distilbert-base-uncased**
+**DistilBERT — `distilbert-base-uncased`**
 
 DistilBERT is a smaller and faster transformer model derived from BERT. It was fine-tuned specifically for binary movie sentiment classification.
 
 ### Training Configuration
 
 - **Model:** DistilBERT
-- **Base Model:** distilbert-base-uncased
+- **Base Model:** `distilbert-base-uncased`
 - **Dataset:** IMDB Movie Reviews
 - **Training Samples:** 20,000
 - **Validation Samples:** 5,000
@@ -80,15 +107,15 @@ The model correctly classified approximately **91 out of every 100 unseen movie 
 
 ```text
 Movie Review
-      ↓
+     ↓
 DistilBERT Tokenizer
-      ↓
+     ↓
 Fine-Tuned DistilBERT
-      ↓
+     ↓
 Sentiment Classification
-      ↓
+     ↓
 Positive / Negative
-      ↓
+     ↓
 Confidence Score
 ```
 
@@ -96,39 +123,52 @@ Confidence Score
 
 ## 💻 Streamlit Application
 
-The trained DistilBERT model is integrated into a Streamlit web application.
+The trained DistilBERT model is integrated into an interactive Streamlit web application.
 
 Users can enter a movie review and receive:
 
 - Predicted sentiment
 - Confidence score
 
-### Example
+### Example 1
 
 ```text
 Review:
+
 This movie was absolutely amazing. I loved every moment of it!
 
 Prediction:
+
 POSITIVE
 
 Confidence:
+
 99.57%
 ```
 
-Another example:
+### Example 2
 
 ```text
 Review:
+
 This movie was boring and disappointing.
 
 Prediction:
+
 NEGATIVE
 
 Confidence:
+
 99.76%
 ```
 
+---
+
+## 📸 Application Screenshot
+
+The application provides a simple interface where users can enter a movie review and instantly receive the predicted sentiment and confidence score.
+
+![Streamlit App Screenshot](screenshots/streamlit_app.png)
 ---
 
 ## 🛠️ Technologies Used
@@ -155,20 +195,23 @@ SENTIMENT_project/
 ├── evaluate_transformer.py
 ├── README.md
 ├── requirements.txt
+├── .gitignore
 │
 ├── data/
-├── distilbert_model/
-├── distilbert_results/
 │
 ├── sentiment_model.pkl
 └── tfidf_vectorizer.pkl
 ```
 
-### Important
+### Model Storage
 
-The `distilbert_model/` and `distilbert_results/` directories are excluded from GitHub because the trained model files are large.
+The fine-tuned DistilBERT model is **not stored directly in this GitHub repository** because the model files are large.
 
-The trained model is stored locally for running the application.
+Instead, the trained model is hosted on **Hugging Face**:
+
+👉 https://huggingface.co/Sneha-090/movie-sentiment-distilbert
+
+The Streamlit application automatically loads the trained model from Hugging Face.
 
 ---
 
@@ -208,6 +251,8 @@ python -m streamlit run app.py --server.fileWatcherType none
 
 The application will open in your browser.
 
+The application downloads the trained DistilBERT model from Hugging Face when required.
+
 ---
 
 ## 🔬 Model Development
@@ -244,7 +289,7 @@ Evaluation
 91.16% Test Accuracy
 ```
 
-The transformer-based approach provided better performance and allowed the model to capture contextual information in movie reviews more effectively.
+The transformer-based approach allows the model to capture contextual information in movie reviews more effectively than the initial TF-IDF-based approach.
 
 ---
 
@@ -252,23 +297,36 @@ The transformer-based approach provided better performance and allowed the model
 
 - Binary movie sentiment classification
 - Fine-tuned DistilBERT model
-- 91.16% test accuracy
+- **91.16% test accuracy**
 - Confidence score for predictions
 - Interactive Streamlit interface
 - Terminal-based prediction script
 - Separate training, validation, and test datasets
+- Model hosted on Hugging Face
+- Live Streamlit deployment
+
+---
+
+## ⚠️ Limitations
+
+The model performs binary sentiment classification and was trained on movie reviews from the IMDB dataset.
+
+For highly ambiguous or mixed reviews, the model may still assign a strong positive or negative confidence because the training task contains only two sentiment classes.
+
+For example, a review containing both positive and negative opinions may be classified into whichever sentiment the model considers dominant.
 
 ---
 
 ## 🔮 Future Improvements
 
-- Deploy the Streamlit application online
+- Add a **Neutral** sentiment class
 - Add probability visualization
-- Add support for longer reviews
+- Improve handling of mixed or ambiguous reviews
 - Experiment with other transformer models
-- Improve handling of mixed or neutral sentiment
 - Compare DistilBERT with other transformer architectures
-- Add more detailed model evaluation and visualizations
+- Add detailed model evaluation visualizations
+- Improve the Streamlit UI/UX
+- Add explainability for model predictions
 
 ---
 
@@ -278,8 +336,19 @@ The transformer-based approach provided better performance and allowed the model
 
 B.Tech CSE (AI/ML)
 
-GitHub:  
+GitHub:
+
 https://github.com/Sneha-090
+
+---
+
+## 🔗 Project Links
+
+| Resource | Link |
+|---|---|
+| 🌐 Live Demo | [Streamlit App](https://movie-sentiment-analysis-mkzyjaxf75cpnsnlh9m6h8.streamlit.app/) |
+| 💻 Source Code | [GitHub Repository](https://github.com/Sneha-090/movie-sentiment-analysis) |
+| 🤗 Trained Model | [Hugging Face](https://huggingface.co/Sneha-090/movie-sentiment-distilbert) |
 
 ---
 
