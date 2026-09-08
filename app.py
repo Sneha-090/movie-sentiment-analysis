@@ -7,7 +7,7 @@ import torch
 # Load trained DistilBERT model
 # -----------------------------
 
-MODEL_PATH = "distilbert_model"
+MODEL_PATH = "Sneha-090/movie-sentiment-distilbert"
 
 @st.cache_resource
 def load_model():
